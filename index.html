@@ -350,8 +350,9 @@ button:focus-visible,select:focus-visible{outline:3px solid var(--ungu); outline
     </div>
     <div id="kilatMain" class="hidden">
       <div class="quiz-top">
-        <span class="stars" id="kilatSkor">⚡ 0</span>
+        <button class="iconbtn" id="kilatQuitBtn" style="width:38px;height:38px;font-size:15px;" aria-label="Keluar">🏠</button>
         <div class="progress"><i class="time" id="kilatBar" style="width:100%"></i></div>
+        <span class="stars" id="kilatSkor">⚡ 0</span>
         <span class="streak" id="kilatTimer">60</span>
       </div>
       <div class="soal" id="kilatSoal"></div>
@@ -989,6 +990,7 @@ function jawab(i,btn){
 }
 $('nextBtn').onclick=()=>{ st.no>=TOTAL?hasil():soalBaru(); };
 $('quitBtn').onclick=()=>go('home');
+$('kilatQuitBtn').onclick=()=>go('home');
 $('ulangBtn').onclick=mulaiKuis;
 
 function hasil(){
