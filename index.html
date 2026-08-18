@@ -235,6 +235,24 @@ button:focus-visible,select:focus-visible{outline:3px solid var(--ungu); outline
 @media (max-width:380px){ .opsi{grid-template-columns:1fr;} .brand h1{font-size:17px;} .menu-grid{grid-template-columns:repeat(5,1fr); gap:6px;} }
 @media (prefers-reduced-motion:reduce){ *,*::before,*::after{animation:none !important; transition:none !important;} }
 </style>
+<!--
+  Google AdSense — GANTI ca-pub-0000000000000000 dengan Publisher ID asli
+  setelah akun disetujui. Situs ini ditujukan untuk anak-anak, jadi:
+  - tagForChildDirectedTreatment + tagForUnderAgeOfConsent = true (wajib, COPPA)
+  - requestNonPersonalizedAdsOnly = 1 (tidak ada iklan personalisasi)
+  Jangan hapus/ubah dua baris config ini walau nanti menambah unit iklan lain.
+-->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-0000000000000000" crossorigin="anonymous"></script>
+<script>
+  window.adsbygoogle = window.adsbygoogle || [];
+  adsbygoogle.requestNonPersonalizedAdsOnly = 1;
+  adsbygoogle.push({
+    google_ad_client: "ca-pub-0000000000000000",
+    enable_page_level_ads: true,
+    tag_for_child_directed_treatment: true,
+    tag_for_under_age_of_consent: true
+  });
+</script>
 </head>
 <body>
 <div class="wrap">
@@ -406,7 +424,7 @@ button:focus-visible,select:focus-visible{outline:3px solid var(--ungu); outline
   </section>
 
 </div>
-<div class="footer">Dibuat dengan ❤️ untuk anak-anak Indonesia · Tanpa login · 100% gratis</div>
+<div class="footer">Dibuat dengan ❤️ untuk anak-anak Indonesia · Tanpa login · 100% gratis · <a href="/kebijakan-privasi.html" style="color:inherit;">Kebijakan Privasi</a></div>
 <div class="toast" id="toast"></div>
 
 <script>
