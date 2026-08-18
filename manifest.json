@@ -1,0 +1,17 @@
+{
+  "name": "Matematika Ceria — Belajar Hitung SD Kelas 1–6",
+  "short_name": "Matematika Ceria",
+  "description": "Situs belajar matematika interaktif untuk anak SD kelas 1-6.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#fcfdff",
+  "theme_color": "#ffc93c",
+  "lang": "id",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

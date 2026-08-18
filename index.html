@@ -2,8 +2,17 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Matematika Ceria — Belajar Hitung SD Kelas 1–6</title>
+<meta name="description" content="Situs belajar matematika interaktif untuk anak SD kelas 1-6.">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#ffc93c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Matematika Ceria">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" href="/icons/icon-192.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -1191,33 +1200,9 @@ $('duelUlang').onclick=()=>$('duelMulai').onclick();
 siapkanMisi(); simpan(); perbaruiMisiDot();
 const sapaan=['Mau latihan apa hari ini? ✏️','Ada misi baru menunggumu! 🎯','Ayo kumpulkan teman baru di Koleksi! 🏅','Coba Mode Kilat, beranikah kamu? ⚡'];
 $('homeBubble').textContent='Halo! Aku Profesor Hu-Hu. '+pick(sapaan);
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});
+}
 </script>
-<!-- Tombol pulang Bocil Pintar -->
-<a href="https://bocilpintar.web.id/" id="bp-pulang" aria-label="Kembali ke halaman utama Bocil Pintar">
-  <span class="bp-ikon" aria-hidden="true">🏠</span>
-  <span class="bp-teks">Beranda</span>
-</a>
-<style>
-  #bp-pulang{
-    position:fixed;top:12px;left:12px;z-index:99999;
-    display:flex;align-items:center;gap:7px;
-    background:#FF7E67;color:#fff;text-decoration:none;
-    font-family:'Fredoka','Nunito',sans-serif;font-weight:600;font-size:15px;
-    padding:9px 15px 9px 12px;border-radius:999px;
-    box-shadow:0 4px 0 #d95c46,0 6px 14px rgba(0,0,0,.18);
-    transition:transform .12s ease,box-shadow .12s ease;
-    -webkit-tap-highlight-color:transparent;
-  }
-  #bp-pulang:hover{transform:translateY(-2px);box-shadow:0 6px 0 #d95c46,0 8px 16px rgba(0,0,0,.2);}
-  #bp-pulang:active{transform:translateY(3px);box-shadow:0 1px 0 #d95c46;}
-  #bp-pulang:focus-visible{outline:3px solid #3E3A5C;outline-offset:3px;}
-  #bp-pulang .bp-ikon{font-size:18px;line-height:1;}
-  @media (max-width:520px){
-    #bp-pulang{padding:10px;gap:0;}
-    #bp-pulang .bp-teks{display:none;}
-    #bp-pulang .bp-ikon{font-size:20px;}
-  }
-  @media (prefers-reduced-motion:reduce){ #bp-pulang{transition:none;} }
-</style>
 </body>
 </html>
