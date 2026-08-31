@@ -169,7 +169,9 @@ var renderer=new THREE.WebGLRenderer({antialias:true});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,mutu.pikselMaks));
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.outputEncoding=THREE.sRGBEncoding; // three r128 pakai API "encoding", bukan "colorSpace" (baru ada di r152+)
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=0.92;
 wadah.appendChild(renderer.domElement);
 
 function ukur(){
@@ -179,7 +181,7 @@ function ukur(){
 }
 window.addEventListener("resize",ukur);
 
-var matahari=new THREE.DirectionalLight(0xfff6e0,2.1);
+var matahari=new THREE.DirectionalLight(0xfff6e0,1.35);
 matahari.position.set(24,38,14);
 matahari.castShadow=true;
 matahari.shadow.mapSize.set(mutu.bayangan,mutu.bayangan);
@@ -187,8 +189,8 @@ matahari.shadow.camera.left=-46; matahari.shadow.camera.right=46;
 matahari.shadow.camera.top=46; matahari.shadow.camera.bottom=-46;
 matahari.shadow.camera.far=110; matahari.shadow.bias=-0.0018;
 scene.add(matahari);
-scene.add(new THREE.AmbientLight(0xbfe0ff,0.85));
-var isian=new THREE.HemisphereLight(0xEFFBFF,0x2E7D46,0.7);
+scene.add(new THREE.AmbientLight(0xbfe0ff,0.7));
+var isian=new THREE.HemisphereLight(0xEFFBFF,0x2E7D46,0.6);
 scene.add(isian);
 
 function warna(hex){ return new THREE.Color(hex).convertSRGBToLinear(); }
@@ -198,16 +200,59 @@ function bahan(hex,opt){
 }
 function taruh(mesh,x,y,z){ mesh.position.set(x,y,z); mesh.castShadow=true; mesh.receiveShadow=true; return mesh; }
 
+/* ===== tekstur tanah prosedural (bercak terang/gelap + goresan rumput halus) ===== */
+function teksturTanah(dasarHex,gelapHex,terangHex){
+  var k=document.createElement("canvas"); k.width=k.height=512;
+  var c=k.getContext("2d");
+  c.fillStyle=dasarHex; c.fillRect(0,0,512,512);
+  function ulang(x,y,r,gambar){
+    for(var ox=-1;ox<=1;ox++) for(var oy=-1;oy<=1;oy++){
+      var px=x+ox*512, py=y+oy*512;
+      if(px<-r||px>512+r||py<-r||py>512+r) continue;
+      gambar(px,py);
+    }
+  }
+  for(var i=0;i<170;i++){
+    (function(){
+      var x=Math.random()*512, y=Math.random()*512, r=16+Math.random()*44;
+      var terang=Math.random()<0.5;
+      ulang(x,y,r,function(px,py){
+        var g=c.createRadialGradient(px,py,0,px,py,r);
+        g.addColorStop(0,terang?"rgba(255,255,255,0.22)":"rgba(20,50,25,0.18)");
+        g.addColorStop(1,"rgba(0,0,0,0)");
+        c.fillStyle=g; c.beginPath(); c.arc(px,py,r,0,6.283); c.fill();
+      });
+    })();
+  }
+  for(var j=0;j<2200;j++){
+    (function(){
+      var bx=Math.random()*512, by=Math.random()*512, h=4+Math.random()*8, miring=(Math.random()-0.5)*5;
+      var gaya=Math.random()<0.5?gelapHex:terangHex;
+      var tebal=0.9+Math.random()*0.8;
+      ulang(bx,by,12,function(px,py){
+        c.strokeStyle=gaya; c.lineWidth=tebal; c.lineCap="round";
+        c.beginPath(); c.moveTo(px,py); c.lineTo(px+miring,py-h); c.stroke();
+      });
+    })();
+  }
+  var t=new THREE.CanvasTexture(k);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping;
+  t.encoding=THREE.sRGBEncoding;
+  t.repeat.set(16,16);
+  try{ t.anisotropy=renderer.capabilities.getMaxAnisotropy(); }catch(e){}
+  return t;
+}
+
 /* ===== tanah ===== */
 (function(){
   var geo=new THREE.CircleGeometry(BATAS+30,64);
-  var mat=bahan(0x3E9455,{roughness:1});
+  var mat=new THREE.MeshStandardMaterial({map:teksturTanah("#3E9455","rgba(20,60,30,0.35)","rgba(230,255,225,0.3)"),roughness:1});
   var tanah=new THREE.Mesh(geo,mat);
   tanah.rotation.x=-Math.PI/2; tanah.receiveShadow=true;
   scene.add(tanah);
   // jalur muda di tengah
   var geo2=new THREE.CircleGeometry(BATAS+2,48);
-  var mat2=bahan(0x4FAE63,{roughness:1});
+  var mat2=new THREE.MeshStandardMaterial({map:teksturTanah("#4FAE63","rgba(25,70,35,0.3)","rgba(235,255,230,0.32)"),roughness:1});
   var lapis=new THREE.Mesh(geo2,mat2);
   lapis.rotation.x=-Math.PI/2; lapis.position.y=0.01; lapis.receiveShadow=true;
   scene.add(lapis);
@@ -215,9 +260,9 @@ function taruh(mesh,x,y,z){ mesh.position.set(x,y,z); mesh.castShadow=true; mesh
 
 /* ===== pohon rendah-poli ===== */
 var GEO={
-  kerucut:new THREE.ConeGeometry(1,1,8),
-  silinder:new THREE.CylinderGeometry(1,1,1,8),
-  bola:new THREE.SphereGeometry(1,10,8),
+  kerucut:new THREE.ConeGeometry(1,1,16),
+  silinder:new THREE.CylinderGeometry(1,1,1,14),
+  bola:new THREE.SphereGeometry(1,22,16),
   kotak:new THREE.BoxGeometry(1,1,1)
 };
 var matBatang=bahan(0x6B4A2E);
@@ -282,20 +327,155 @@ for(var i=0;i<mutu.pohon;i++){
   titikPohon.push([x,z]);
 }
 
-/* semak & jamur dekor kecil (bukan objek permainan) */
-var matSemak=bahan(0x2E7D46);
+/* semak (gaya blob — beberapa bola bertumpuk supaya membundar) & dekorasi kecil lain */
+var matSemakA=bahan(0x2E7D46);
+var matSemakB=bahan(0x379056);
 var dekorGrup=new THREE.Group(); scene.add(dekorGrup);
+function buatSemak(s){
+  var g=new THREE.Group();
+  var tumpuk=[[0,0,0,1],[0.55,0.12,0.15,0.72],[-0.5,0.08,-0.2,0.68],[0.1,0.35,-0.4,0.6]];
+  tumpuk.forEach(function(t,i){
+    var b=new THREE.Mesh(GEO.bola,i%2?matSemakB:matSemakA);
+    var sk=s*t[3];
+    b.scale.set(sk,sk*0.82,sk);
+    b.position.set(t[0]*s,t[1]*s+sk*0.75,t[2]*s);
+    g.add(b);
+  });
+  g.traverse(function(o){ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
+  return g;
+}
 for(var i=0;i<Math.floor(mutu.pohon*0.6);i++){
   var sudut=R()*Math.PI*2, jarak=6+R()*(BATAS+10);
   var x=Math.cos(sudut)*jarak, z=Math.sin(sudut)*jarak;
   if(!jauhDariTitik(x,z,titikPenting,5)) continue;
-  var semak=new THREE.Mesh(GEO.bola,matSemak);
-  var s=0.35+R()*0.35;
-  semak.scale.set(s,s*0.8,s);
-  semak.position.set(x,s*0.6,z);
-  semak.castShadow=true; semak.receiveShadow=true;
+  var s=0.4+R()*0.4;
+  var semak=buatSemak(s);
+  semak.position.set(x,0,z);
   dekorGrup.add(semak);
 }
+
+/* bunga kecil (kelompok titik warna di atas tangkai tipis) */
+var matTangkai=bahan(0x2E7D46);
+var WARNA_BUNGA=[0xffe8a3,0xffb3c6,0xffffff,0xc9a9ff];
+function buatBunga(){
+  var g=new THREE.Group();
+  var warnaBunga=bahan(WARNA_BUNGA[Math.floor(R()*WARNA_BUNGA.length)]);
+  var n=3+Math.floor(R()*3);
+  for(var i=0;i<n;i++){
+    var a=(i/n)*Math.PI*2+R()*0.5, jr=0.08+R()*0.1;
+    var tangkai=new THREE.Mesh(GEO.silinder,matTangkai);
+    tangkai.scale.set(0.02,0.16+R()*0.08,0.02);
+    tangkai.position.set(Math.cos(a)*jr,tangkai.scale.y*0.5,Math.sin(a)*jr);
+    g.add(tangkai);
+    var kelopak=new THREE.Mesh(GEO.bola,warnaBunga);
+    kelopak.scale.set(0.055,0.045,0.055);
+    kelopak.position.set(Math.cos(a)*jr,tangkai.scale.y+0.02,Math.sin(a)*jr);
+    g.add(kelopak);
+  }
+  g.traverse(function(o){ if(o.isMesh){ o.castShadow=false; o.receiveShadow=true; } });
+  return g;
+}
+for(var i=0;i<Math.floor(mutu.pohon*1.4);i++){
+  var sudut=R()*Math.PI*2, jarak=4+R()*(BATAS+8);
+  var x=Math.cos(sudut)*jarak, z=Math.sin(sudut)*jarak;
+  if(!jauhDariTitik(x,z,titikPenting,4)) continue;
+  var bunga=buatBunga();
+  bunga.position.set(x,0,z);
+  dekorGrup.add(bunga);
+}
+
+/* batang kayu tumbang */
+var matKayuTumbang=bahan(0x8a5f3a);
+var matKayuPotong=bahan(0xd8b98a);
+function buatKayuTumbang(){
+  var g=new THREE.Group();
+  var batang=new THREE.Mesh(GEO.silinder,matKayuTumbang);
+  batang.rotation.z=Math.PI/2;
+  batang.scale.set(0.22,1.6,0.22);
+  batang.position.y=0.22;
+  g.add(batang);
+  [-1,1].forEach(function(sisi){
+    var potong=new THREE.Mesh(GEO.silinder,matKayuPotong);
+    potong.rotation.z=Math.PI/2;
+    potong.scale.set(0.225,0.05,0.225);
+    potong.position.set(sisi*0.8,0.22,0);
+    g.add(potong);
+  });
+  g.traverse(function(o){ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
+  return g;
+}
+for(var i=0;i<Math.floor(mutu.pohon*0.12);i++){
+  var sudut=R()*Math.PI*2, jarak=8+R()*(BATAS+6);
+  var x=Math.cos(sudut)*jarak, z=Math.sin(sudut)*jarak;
+  if(!jauhDariTitik(x,z,titikPenting,5)) continue;
+  var kayu=buatKayuTumbang();
+  kayu.position.set(x,0,z);
+  kayu.rotation.y=R()*Math.PI*2;
+  dekorGrup.add(kayu);
+}
+
+/* ===== rumput 3D beranimasi (instanced, bergoyang tertiup angin) ===== */
+var uWaktu={value:0};
+(function(){
+  function geoHelai(){
+    var tinggiH=0.6, lebar=0.045, ruas=3;
+    var pos=[],idx=[];
+    for(var i=0;i<=ruas;i++){
+      var t=i/ruas;
+      var w=lebar*(1-t*0.9);
+      var y=tinggiH*t;
+      var lengkung=t*t*0.18;
+      pos.push(-w,y,lengkung, w,y,lengkung);
+    }
+    for(var k=0;k<ruas;k++){
+      var a=k*2;
+      idx.push(a,a+2,a+1, a+1,a+2,a+3);
+    }
+    var g=new THREE.BufferGeometry();
+    g.setAttribute("position",new THREE.Float32BufferAttribute(pos,3));
+    g.setIndex(idx);
+    g.computeVertexNormals();
+    return g;
+  }
+  var geo=geoHelai();
+  var NADA=[0x6DB44F,0x7AC25B,0x5FA546];
+  var total=Math.floor((BATAS*BATAS/(34*34))*(kecil?2200:5000));
+  var kelompok=NADA.map(function(hex){
+    var mat=bahan(hex,{roughness:1,side:THREE.DoubleSide});
+    mat.onBeforeCompile=function(sh){
+      sh.uniforms.waktu=uWaktu;
+      sh.vertexShader="uniform float waktu;\n"+sh.vertexShader.replace(
+        "#include <begin_vertex>",
+        "#include <begin_vertex>\n#ifdef USE_INSTANCING\n vec3 ip=vec3(instanceMatrix[3][0],instanceMatrix[3][1],instanceMatrix[3][2]);\n float goyang=sin(waktu*1.9+ip.x*0.45+ip.z*0.32)*0.16*max(transformed.y,0.0);\n transformed.x+=goyang; transformed.z+=goyang*0.4;\n#endif"
+      );
+    };
+    var im=new THREE.InstancedMesh(geo,mat,Math.ceil(total/NADA.length));
+    im.castShadow=false; im.receiveShadow=true;
+    im.frustumCulled=false;
+    im.userData.isi=0;
+    scene.add(im);
+    return im;
+  });
+  var d=new THREE.Object3D(), gilir=0, terpasang=0, coba=0;
+  while(terpasang<total&&coba<total*4){
+    coba++;
+    var sudut=R()*Math.PI*2, jarak=R()*(BATAS+18);
+    var cx=Math.cos(sudut)*jarak, cz=Math.sin(sudut)*jarak;
+    if(!jauhDariTitik(cx,cz,titikPenting,3.5)) continue;
+    var helai=4+Math.floor(R()*4);
+    for(var j=0;j<helai&&terpasang<total;j++){
+      var x=cx+(R()-0.5)*1.3, z=cz+(R()-0.5)*1.3;
+      d.position.set(x,0,z);
+      d.rotation.set(0,R()*Math.PI*2,0);
+      var sk=0.75+R()*0.6;
+      d.scale.set(0.9+R()*0.4,sk,1);
+      d.updateMatrix();
+      var im2=kelompok[gilir%kelompok.length]; gilir++;
+      if(im2.userData.isi<im2.count){ im2.setMatrixAt(im2.userData.isi++,d.matrix); terpasang++; }
+    }
+  }
+  kelompok.forEach(function(im3){ im3.count=im3.userData.isi; im3.instanceMatrix.needsUpdate=true; });
+})();
 
 /* ===================== Profesor Hu-Hu (mascot) ===================== */
 var matBadan=bahan(0xffc93c);
@@ -351,7 +531,7 @@ function spriteEmoji(teks,ukuran){
   c.textAlign="center"; c.textBaseline="middle";
   c.fillText(teks,64,72);
   var tex=new THREE.CanvasTexture(kv);
-  tex.colorSpace=THREE.SRGBColorSpace;
+  tex.encoding=THREE.sRGBEncoding;
   var mat=new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false});
   var sp=new THREE.Sprite(mat);
   sp.scale.set(ukuran||1,ukuran||1,1);
@@ -765,6 +945,7 @@ function gelung(){
   var dt=Math.min(0.05,(now-prevT)/1000);
   prevT=now; waktu+=dt;
   if(!mainAktif) return;
+  uWaktu.value=waktu;
   perbaruiPemain(dt);
   animasiIdle(dt);
   periksaObjek();
