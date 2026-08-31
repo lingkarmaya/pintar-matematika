@@ -543,21 +543,50 @@ gelembungOwl.position.set(0.9,2.7,-2);
 gelembungOwl.visible=false;
 scene.add(gelembungOwl);
 
-/* ===================== pemain ===================== */
-var matAnak=bahan(0x23508f);
-var matAnakKulit=bahan(0xffd9b3);
+/* ===================== pemain: "Kiki" si penjelajah cilik (karakter orisinal) ===================== */
+var matKulit=bahan(0xffd9b3);
+var matTunik=bahan(0x3fa15a);
+var matTunikGelap=bahan(0x2f8146);
+var matSabuk=bahan(0x6b4a2e);
+var matSepatu=bahan(0x7a5230);
+var matRambut=bahan(0xf2b73d);
+var matTas=bahan(0x8a5f3a);
 function buatPemain(){
   var g=new THREE.Group();
-  var badan=new THREE.Mesh(GEO.silinder,matAnak); badan.scale.set(0.34,0.5,0.34); badan.position.y=0.62;
-  g.add(badan);
-  var kepala=new THREE.Mesh(GEO.bola,matAnakKulit); kepala.scale.set(0.32,0.32,0.32); kepala.position.y=1.12;
-  g.add(kepala);
-  var topi=new THREE.Mesh(GEO.kerucut,bahan(0xff9d9d)); topi.scale.set(0.34,0.28,0.34); topi.position.y=1.36;
-  g.add(topi);
-  [[-0.16,0],[0.16,0]].forEach(function(p){
-    var kaki=new THREE.Mesh(GEO.silinder,bahan(0x1a3a6b)); kaki.scale.set(0.1,0.34,0.1); kaki.position.set(p[0],0.17,0);
+  // tunik (badan agak melebar ke bawah — 2 silinder ditumpuk)
+  var dada=new THREE.Mesh(GEO.silinder,matTunik); dada.scale.set(0.28,0.3,0.28); dada.position.y=0.72;
+  g.add(dada);
+  var rok=new THREE.Mesh(GEO.silinder,matTunikGelap); rok.scale.set(0.36,0.22,0.36); rok.position.y=0.5;
+  g.add(rok);
+  var sabuk=new THREE.Mesh(GEO.silinder,matSabuk); sabuk.scale.set(0.3,0.05,0.3); sabuk.position.y=0.6;
+  g.add(sabuk);
+  // tas kecil di punggung
+  var tas=new THREE.Mesh(GEO.kotak,matTas); tas.scale.set(0.22,0.26,0.14); tas.position.set(0,0.7,-0.22);
+  g.add(tas);
+  // kaki & sepatu
+  [[-0.14,0],[0.14,0]].forEach(function(p){
+    var kaki=new THREE.Mesh(GEO.silinder,matKulit); kaki.scale.set(0.09,0.22,0.09); kaki.position.set(p[0],0.24,0);
     g.add(kaki);
+    var sepatu=new THREE.Mesh(GEO.bola,matSepatu); sepatu.scale.set(0.11,0.09,0.15); sepatu.position.set(p[0],0.09,0.03);
+    g.add(sepatu);
   });
+  // lengan
+  [[-0.3,0.78],[0.3,0.78]].forEach(function(p){
+    var lengan=new THREE.Mesh(GEO.silinder,matTunik); lengan.scale.set(0.07,0.22,0.07); lengan.position.set(p[0],p[1],0);
+    g.add(lengan);
+    var tangan=new THREE.Mesh(GEO.bola,matKulit); tangan.scale.set(0.075,0.075,0.075); tangan.position.set(p[0],p[1]-0.13,0);
+    g.add(tangan);
+  });
+  // kepala
+  var kepala=new THREE.Mesh(GEO.bola,matKulit); kepala.scale.set(0.3,0.3,0.3); kepala.position.y=1.12;
+  g.add(kepala);
+  // rambut pirang: kubah atas + poni depan + jambul kecil, TANPA topi — ciri khas orisinal
+  var rambutAtas=new THREE.Mesh(GEO.bola,matRambut); rambutAtas.scale.set(0.32,0.24,0.32); rambutAtas.position.set(0,1.24,-0.02);
+  g.add(rambutAtas);
+  var poni=new THREE.Mesh(GEO.bola,matRambut); poni.scale.set(0.28,0.14,0.2); poni.position.set(0,1.18,0.16);
+  g.add(poni);
+  var jambul=new THREE.Mesh(GEO.kerucut,matRambut); jambul.scale.set(0.09,0.16,0.09); jambul.position.set(0.03,1.42,-0.05); jambul.rotation.z=-0.35;
+  g.add(jambul);
   g.traverse(function(o){ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
   return g;
 }
