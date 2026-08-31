@@ -1,0 +1,790 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Math Land — Petualangan Matematika Anak</title>
+<meta name="description" content="Prototipe: jelajahi hutan 3D dan berlatih berhitung bersama Profesor Hu-Hu.">
+<meta name="theme-color" content="#ffc93c">
+<link rel="icon" href="/pwa-icons/icon-192.png" type="image/png">
+<style>html,body{margin:0;padding:0;background:#0E3B22;}</style>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700;800&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#fcfdff; --ink:#23508f; --ink-dark:#1a3a6b;
+  --pencil:#ffc93c; --pencil-dark:#e8a800; --coral:#ff9d9d; --coral-dark:#d95c46;
+  --hijau:#2fb673;
+  --display:'Fredoka','Trebuchet MS',system-ui,sans-serif;
+  --body:'Nunito','Segoe UI',system-ui,sans-serif;
+  --emoji:"Apple Color Emoji","Noto Color Emoji","Segoe UI Emoji",sans-serif;
+}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none;background:#0E3B22;}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+#app{position:fixed;inset:0;font-family:var(--body);color:var(--ink-dark);user-select:none;}
+#panggung{position:absolute;inset:0;touch-action:none;}
+#panggung canvas{display:block;width:100%;height:100%;}
+
+.panel{background:var(--paper);border:3px solid var(--ink);border-radius:20px;box-shadow:0 5px 0 rgba(26,58,107,.22),0 10px 22px rgba(26,58,107,.16);}
+
+#hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:12px;pointer-events:none;}
+#quest{padding:10px 16px;font-family:var(--display);font-weight:700;font-size:clamp(14px,3.8vw,18px);max-width:min(64vw,340px);}
+#quest .baris1{display:flex;align-items:center;gap:8px;}
+#quest .angka{color:var(--ink);font-size:1.3em;font-weight:800;}
+#titikTarget{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap;}
+#titikTarget span{width:13px;height:13px;border-radius:50%;background:#e3ecf7;border:2px solid var(--ink);}
+#titikTarget span.isi{background:var(--pencil);}
+#kanan{display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:auto;}
+#bintang{padding:9px 15px;font-family:var(--display);font-weight:800;font-size:clamp(15px,4.2vw,20px);display:flex;align-items:center;gap:6px;}
+.bulat{width:50px;height:50px;font-size:21px;display:grid;place-items:center;cursor:pointer;padding:0;font-family:var(--emoji);}
+
+#keranjang{position:absolute;left:0;right:0;bottom:calc(196px + env(safe-area-inset-bottom));padding:6px 12px;display:flex;gap:8px;align-items:center;justify-content:center;pointer-events:none;}
+.kslot{width:52px;height:52px;display:grid;place-items:center;font-size:26px;font-family:var(--emoji);background:var(--paper);border:3px solid var(--pencil-dark);border-radius:16px;box-shadow:0 4px 0 rgba(26,58,107,.2);}
+
+#kendali{position:absolute;left:0;right:0;bottom:0;padding:6px 12px calc(8px + env(safe-area-inset-bottom));display:flex;align-items:flex-end;justify-content:space-between;gap:12px;pointer-events:none;}
+#dpad{order:2;pointer-events:auto;display:grid;grid-template-columns:repeat(3,clamp(42px,11.5vw,50px));grid-template-rows:repeat(3,clamp(42px,11.5vw,50px));gap:4px;}
+.arah{display:grid;place-items:center;font-family:var(--display);font-size:19px;font-weight:800;color:var(--ink-dark);background:var(--paper);border:3px solid var(--ink);border-radius:14px;box-shadow:0 3px 0 rgba(26,58,107,.22);cursor:pointer;padding:0;touch-action:none;user-select:none;}
+.arah:active,.arah.tekan{transform:translateY(3px);box-shadow:0 1px 0 rgba(26,58,107,.22);background:#fff3c9;}
+#arah-atas{grid-area:1/2;} #arah-kiri{grid-area:2/1;} #arah-kanan{grid-area:2/3;} #arah-bawah{grid-area:3/2;}
+#dpad .tengah{grid-area:2/2;display:grid;place-items:center;font-family:var(--emoji);font-size:15px;opacity:.4;}
+
+#tombolKasih{order:1;pointer-events:auto;display:grid;place-items:center;gap:0;width:clamp(80px,21vw,92px);height:clamp(80px,21vw,92px);border-radius:22px;border:4px solid var(--ink);background:#e7e1d4;color:#7c8aa3;box-shadow:0 5px 0 rgba(26,58,107,.22);cursor:pointer;transition:background .15s ease,color .15s ease,transform .1s ease;opacity:0;pointer-events:none;transform:scale(.85);}
+#tombolKasih.tampil{opacity:1;pointer-events:auto;transform:scale(1);}
+#tombolKasih .ikon{font-family:var(--emoji);font-size:26px;line-height:1;}
+#tombolKasih .teks{font-family:var(--display);font-weight:800;font-size:11px;margin-top:2px;text-align:center;line-height:1.2;}
+#tombolKasih.siap{background:var(--pencil);color:var(--ink-dark);animation:denyut 1.1s ease-in-out infinite;}
+#tombolKasih:active{transform:scale(1) translateY(4px);box-shadow:0 1px 0 rgba(26,58,107,.22);}
+@keyframes denyut{0%,100%{box-shadow:0 5px 0 rgba(26,58,107,.22),0 0 0 0 rgba(255,201,60,.6);}50%{box-shadow:0 5px 0 rgba(26,58,107,.22),0 0 0 12px rgba(255,201,60,0);}}
+
+#kartu{position:absolute;left:50%;top:20%;transform:translate(-50%,-10px) scale(.9);opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s cubic-bezier(.2,1.3,.5,1);padding:16px 22px;text-align:center;max-width:min(90vw,380px);}
+#kartu.tampil{opacity:1;transform:translate(-50%,0) scale(1);}
+#kartu .em{font-family:var(--emoji);font-size:clamp(38px,11vw,54px);}
+#kartu p{margin:6px 0 0;font-family:var(--display);font-weight:700;font-size:clamp(16px,4.4vw,21px);}
+
+#toast{position:absolute;left:50%;bottom:202px;transform:translate(-50%,8px);opacity:0;transition:opacity .2s ease,transform .2s ease;padding:10px 18px;font-family:var(--display);font-weight:700;font-size:clamp(14px,3.8vw,18px);pointer-events:none;white-space:nowrap;max-width:90vw;}
+#toast.tampil{opacity:1;transform:translate(-50%,0);}
+
+.layar{position:absolute;inset:0;display:grid;place-items:center;padding:20px;background:linear-gradient(180deg,#bfe3f7 0%,#cdeec0 45%,#63b06f 100%);text-align:center;z-index:5;}
+.layar.sembunyi{display:none;}
+.kotak{max-width:min(92vw,440px);padding:26px 24px 24px;}
+.judul{font-family:var(--display);font-weight:800;font-size:clamp(26px,8vw,38px);line-height:1.1;margin:0;color:var(--ink-dark);}
+.judul .em{font-family:var(--emoji);}
+.sub{margin:10px 0 18px;font-weight:700;font-size:clamp(14px,3.9vw,17px);color:var(--ink);line-height:1.45;}
+.tombol{cursor:pointer;font-family:var(--display);font-weight:800;font-size:clamp(19px,5.2vw,25px);padding:14px 34px;border-radius:999px;border:4px solid var(--ink-dark);background:var(--pencil);color:var(--ink-dark);box-shadow:0 6px 0 var(--pencil-dark);transition:transform .1s ease,box-shadow .1s ease;}
+.tombol:active{transform:translateY(4px);box-shadow:0 2px 0 var(--pencil-dark);}
+.petunjuk{margin:18px 0 0;padding:0;display:grid;gap:9px;text-align:left;}
+.petunjuk li{list-style:none;display:flex;gap:10px;align-items:center;font-weight:700;font-size:clamp(13px,3.5vw,15px);}
+.petunjuk .ikon{font-family:var(--emoji);font-size:24px;flex:none;width:32px;text-align:center;}
+.catatan{margin-top:16px;font-size:12px;font-weight:700;color:var(--ink);opacity:.75;}
+#memuat{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(180deg,#bfe3f7,#cdeec0);z-index:6;font-family:var(--display);font-weight:800;font-size:20px;color:var(--ink-dark);}
+#memuat.sembunyi{display:none;}
+.beta{position:absolute;top:6px;right:6px;font-size:10px;font-weight:800;background:var(--coral);color:#fff;padding:3px 8px;border-radius:999px;font-family:var(--display);z-index:7;}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms !important;}}
+</style>
+
+<div id="app">
+  <div id="panggung"></div>
+  <div class="beta">PROTOTIPE</div>
+
+  <div id="hud">
+    <div id="quest" class="panel">
+      <div class="baris1"><span style="font-family:var(--emoji)">🥕</span><span>Kumpulkan <span class="angka" id="jmlTarget">0</span> wortel</span></div>
+      <div id="titikTarget"></div>
+    </div>
+    <div id="kanan">
+      <div id="bintang" class="panel"><span style="font-family:var(--emoji)">⭐</span><span id="jmlBintang">0</span></div>
+      <button id="suara" class="panel bulat" aria-label="Nyalakan atau matikan suara">🔊</button>
+    </div>
+  </div>
+
+  <div id="kartu" class="panel" role="status" aria-live="polite">
+    <div class="em" id="kEmoji">🦉</div>
+    <p id="kTeks">Halo!</p>
+  </div>
+
+  <div id="toast" class="panel"></div>
+  <div id="keranjang"></div>
+
+  <div id="kendali">
+    <div id="dpad" role="group" aria-label="Tombol arah">
+      <button class="arah" id="arah-atas" aria-label="Jalan ke depan">▲</button>
+      <button class="arah" id="arah-kiri" aria-label="Jalan ke kiri">◀</button>
+      <div class="tengah">🧭</div>
+      <button class="arah" id="arah-kanan" aria-label="Jalan ke kanan">▶</button>
+      <button class="arah" id="arah-bawah" aria-label="Jalan mundur">▼</button>
+    </div>
+    <button id="tombolKasih" aria-label="Kasih wortel ke Profesor Hu-Hu">
+      <span class="ikon">🦉</span>
+      <span class="teks">Kasih ke<br>Prof. Hu-Hu</span>
+    </button>
+  </div>
+
+  <div class="layar" id="mulai">
+    <div class="kotak panel">
+      <h1 class="judul"><span class="em">🌲🔢</span><br>Math Land</h1>
+      <p class="sub">Jelajahi hutan bersama Profesor Hu-Hu dan berlatih berhitung sambil main!</p>
+      <button class="tombol" id="tombolMulai">Mulai Main ▶</button>
+      <ul class="petunjuk">
+        <li><span class="ikon">🕹️</span> Pakai tombol panah untuk jalan</li>
+        <li><span class="ikon">🥕</span> Lewati wortel untuk memungutnya — hati-hati, ada yang bukan wortel!</li>
+        <li><span class="ikon">🦉</span> Kalau sudah pas jumlahnya, dekati Profesor Hu-Hu dan tekan "Kasih"</li>
+      </ul>
+      <p class="catatan">Tanpa waktu, tanpa kalah. Salah hitung tidak apa-apa — Profesor Hu-Hu akan bantu petunjuk.</p>
+    </div>
+  </div>
+
+  <div id="memuat"><div>Menyiapkan hutan… 🌲</div></div>
+</div>
+
+<script src="./math-land-vendor/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+if(!window.THREE){
+  document.getElementById("mulai").innerHTML='<div class="kotak panel"><h1 class="judul">Aduh 😅</h1><p class="sub">Mesin 3D gagal dimuat. Coba muat ulang halaman ini ya.</p></div>';
+  document.getElementById("memuat").classList.add("sembunyi");
+  return;
+}
+
+/* ===================== util ===================== */
+function acak(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0; var t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+var R=acak(20260831);
+var ANGKA_KATA=["nol","satu","dua","tiga","empat","lima","enam","tujuh","delapan","sembilan","sepuluh"];
+var BATAS=34; // radius area main
+
+/* ===================== render dasar ===================== */
+var wadah=document.getElementById("panggung");
+var kecil=Math.min(window.innerWidth,window.innerHeight)<560;
+var mutu={ pikselMaks:kecil?1.5:2, bayangan:kecil?1024:2048, pohon:kecil?16:24, rumputSkala:kecil?0.6:1 };
+
+var scene=new THREE.Scene();
+scene.background=new THREE.Color(0xBFE3F7);
+scene.fog=new THREE.Fog(0xBFE3F7,42,92);
+
+var camera=new THREE.PerspectiveCamera(52,1,0.1,300);
+var renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,mutu.pikselMaks));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+wadah.appendChild(renderer.domElement);
+
+function ukur(){
+  var w=wadah.clientWidth,h=wadah.clientHeight;
+  camera.aspect=w/(h||1); camera.updateProjectionMatrix();
+  renderer.setSize(w,h);
+}
+window.addEventListener("resize",ukur);
+
+var matahari=new THREE.DirectionalLight(0xfff6e0,2.1);
+matahari.position.set(24,38,14);
+matahari.castShadow=true;
+matahari.shadow.mapSize.set(mutu.bayangan,mutu.bayangan);
+matahari.shadow.camera.left=-46; matahari.shadow.camera.right=46;
+matahari.shadow.camera.top=46; matahari.shadow.camera.bottom=-46;
+matahari.shadow.camera.far=110; matahari.shadow.bias=-0.0018;
+scene.add(matahari);
+scene.add(new THREE.AmbientLight(0xbfe0ff,0.85));
+var isian=new THREE.HemisphereLight(0xEFFBFF,0x2E7D46,0.7);
+scene.add(isian);
+
+function warna(hex){ return new THREE.Color(hex).convertSRGBToLinear(); }
+function bahan(hex,opt){
+  opt=opt||{};
+  return new THREE.MeshStandardMaterial(Object.assign({color:warna(hex),roughness:opt.roughness!=null?opt.roughness:0.85,metalness:opt.metalness||0},opt));
+}
+function taruh(mesh,x,y,z){ mesh.position.set(x,y,z); mesh.castShadow=true; mesh.receiveShadow=true; return mesh; }
+
+/* ===== tanah ===== */
+(function(){
+  var geo=new THREE.CircleGeometry(BATAS+30,64);
+  var mat=bahan(0x3E9455,{roughness:1});
+  var tanah=new THREE.Mesh(geo,mat);
+  tanah.rotation.x=-Math.PI/2; tanah.receiveShadow=true;
+  scene.add(tanah);
+  // jalur muda di tengah
+  var geo2=new THREE.CircleGeometry(BATAS+2,48);
+  var mat2=bahan(0x4FAE63,{roughness:1});
+  var lapis=new THREE.Mesh(geo2,mat2);
+  lapis.rotation.x=-Math.PI/2; lapis.position.y=0.01; lapis.receiveShadow=true;
+  scene.add(lapis);
+})();
+
+/* ===== pohon rendah-poli ===== */
+var GEO={
+  kerucut:new THREE.ConeGeometry(1,1,8),
+  silinder:new THREE.CylinderGeometry(1,1,1,8),
+  bola:new THREE.SphereGeometry(1,10,8),
+  kotak:new THREE.BoxGeometry(1,1,1)
+};
+var matBatang=bahan(0x6B4A2E);
+var matDaunA=bahan(0x2E7D46);
+var matDaunB=bahan(0x1B5230);
+
+function pohonPinus(x,z,s){
+  s=s||1;
+  var g=new THREE.Group();
+  var batang=new THREE.Mesh(GEO.silinder,matBatang);
+  batang.scale.set(0.28*s,1.6*s,0.28*s); batang.position.y=0.8*s;
+  g.add(batang);
+  for(var i=0;i<3;i++){
+    var d=new THREE.Mesh(GEO.kerucut,i%2?matDaunA:matDaunB);
+    var sk=(1.5-i*0.32)*s;
+    d.scale.set(sk,1.5*s,sk);
+    d.position.y=(1.5+i*0.9)*s;
+    g.add(d);
+  }
+  g.traverse(function(o){ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
+  g.position.set(x,tinggi(x,z),z);
+  return g;
+}
+function pohonRindang(x,z,s){
+  s=s||1;
+  var g=new THREE.Group();
+  var batang=new THREE.Mesh(GEO.silinder,matBatang);
+  batang.scale.set(0.3*s,1.3*s,0.3*s); batang.position.y=0.65*s;
+  g.add(batang);
+  var mahkota=new THREE.Mesh(GEO.bola,matDaunA);
+  mahkota.scale.set(1.7*s,1.3*s,1.7*s); mahkota.position.y=1.9*s;
+  g.add(mahkota);
+  var mahkota2=new THREE.Mesh(GEO.bola,matDaunB);
+  mahkota2.scale.set(1.15*s,0.95*s,1.15*s); mahkota2.position.set(0.7*s,1.55*s,0.3*s);
+  g.add(mahkota2);
+  g.traverse(function(o){ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
+  g.position.set(x,tinggi(x,z),z);
+  return g;
+}
+function tinggi(){ return 0; } // tanah rata untuk prototipe
+
+function jauhDariTitik(x,z,pts,min){
+  for(var i=0;i<pts.length;i++){
+    var dx=x-pts[i][0],dz=z-pts[i][1];
+    if(dx*dx+dz*dz<min*min) return false;
+  }
+  return true;
+}
+
+var titikPenting=[[0,0],[0,8]]; // owl di tengah & titik spawn pemain — hindari untuk pohon/semak
+var pohonGrup=new THREE.Group(); scene.add(pohonGrup);
+var pohonTabrakan=[]; // {x,z,r} batang pohon, dipakai untuk mencegah pemain jalan menembus
+var titikPohon=[]; // posisi pohon yang sudah ditaruh, supaya kanopi antar pohon tidak menumpuk jadi satu massa gelap
+for(var i=0;i<mutu.pohon;i++){
+  var sudut=R()*Math.PI*2, jarak=10+R()*(BATAS+16);
+  var x=Math.cos(sudut)*jarak, z=Math.sin(sudut)*jarak;
+  if(!jauhDariTitik(x,z,titikPenting,7)) continue;
+  if(!jauhDariTitik(x,z,titikPohon,6.5)) continue; // jarak minimum antar kanopi pohon
+  var s=0.75+R()*0.7;
+  pohonGrup.add(R()>0.45?pohonPinus(x,z,s):pohonRindang(x,z,s));
+  pohonTabrakan.push({x:x,z:z,r:1.5*s}); // mencakup area kanopi, bukan cuma batang — supaya kamera tidak pernah kepepet ke bawah pohon
+  titikPohon.push([x,z]);
+}
+
+/* semak & jamur dekor kecil (bukan objek permainan) */
+var matSemak=bahan(0x2E7D46);
+var dekorGrup=new THREE.Group(); scene.add(dekorGrup);
+for(var i=0;i<Math.floor(mutu.pohon*0.6);i++){
+  var sudut=R()*Math.PI*2, jarak=6+R()*(BATAS+10);
+  var x=Math.cos(sudut)*jarak, z=Math.sin(sudut)*jarak;
+  if(!jauhDariTitik(x,z,titikPenting,5)) continue;
+  var semak=new THREE.Mesh(GEO.bola,matSemak);
+  var s=0.35+R()*0.35;
+  semak.scale.set(s,s*0.8,s);
+  semak.position.set(x,s*0.6,z);
+  semak.castShadow=true; semak.receiveShadow=true;
+  dekorGrup.add(semak);
+}
+
+/* ===================== Profesor Hu-Hu (mascot) ===================== */
+var matBadan=bahan(0xffc93c);
+var matBadanGelap=bahan(0xe8a800);
+var matPerut=bahan(0xfffbea,{roughness:0.6});
+var matInk=bahan(0x1a3a6b,{roughness:0.5});
+var matPutih=bahan(0xffffff,{roughness:0.4});
+var matCoral=bahan(0xff9d9d);
+
+function buatOwl(){
+  var g=new THREE.Group();
+  var badan=new THREE.Mesh(GEO.bola,matBadan); badan.scale.set(1.05,1.15,1); badan.position.y=1.15;
+  g.add(badan);
+  var perut=new THREE.Mesh(GEO.bola,matPerut); perut.scale.set(0.62,0.78,0.55); perut.position.set(0,1.05,0.45);
+  g.add(perut);
+  [[-0.34,0],[0.34,0]].forEach(function(p){
+    var mataP=new THREE.Mesh(GEO.bola,matPutih); mataP.scale.set(0.28,0.28,0.2); mataP.position.set(p[0],1.42,0.78);
+    g.add(mataP);
+    var pupil=new THREE.Mesh(GEO.bola,matInk); pupil.scale.set(0.13,0.13,0.1); pupil.position.set(p[0],1.42,0.9);
+    g.add(pupil);
+  });
+  var paruh=new THREE.Mesh(GEO.kerucut,matCoral); paruh.scale.set(0.16,0.22,0.16); paruh.position.set(0,1.24,0.85); paruh.rotation.x=Math.PI/2;
+  g.add(paruh);
+  [[-0.95,0.15],[0.95,0.15]].forEach(function(p,i){
+    var sayap=new THREE.Mesh(GEO.bola,matBadanGelap); sayap.scale.set(0.28,0.55,0.4);
+    sayap.position.set(p[0],1.1,p[1]); sayap.rotation.z=i?-0.35:0.35;
+    g.add(sayap);
+  });
+  // topi toga
+  var capBase=new THREE.Mesh(GEO.silinder,matInk); capBase.scale.set(0.42,0.16,0.42); capBase.position.y=1.98;
+  g.add(capBase);
+  var capAtas=new THREE.Mesh(GEO.kotak,matInk); capAtas.scale.set(0.95,0.06,0.95); capAtas.position.y=2.08; capAtas.rotation.y=Math.PI/4;
+  g.add(capAtas);
+  var bola=new THREE.Mesh(GEO.bola,matBadan); bola.scale.set(0.09,0.09,0.09); bola.position.set(0.5,1.98,0.5);
+  g.add(bola);
+  [[-0.5,1.85],[0.5,1.85]].forEach(function(p){
+    var kaki=new THREE.Mesh(GEO.bola,matCoral); kaki.scale.set(0.14,0.1,0.18); kaki.position.set(p[0]*0.55,0.06,0.1);
+    g.add(kaki);
+  });
+  g.traverse(function(o){ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
+  return g;
+}
+var owl=buatOwl();
+owl.position.set(0,0,-2);
+scene.add(owl);
+var owlFase=Math.random()*10;
+
+/* bubble/gelembung teks di atas kepala owl (pakai sprite kanvas) */
+function spriteEmoji(teks,ukuran){
+  var kv=document.createElement("canvas"); kv.width=128; kv.height=128;
+  var c=kv.getContext("2d");
+  c.font="94px 'Apple Color Emoji','Noto Color Emoji','Segoe UI Emoji',sans-serif";
+  c.textAlign="center"; c.textBaseline="middle";
+  c.fillText(teks,64,72);
+  var tex=new THREE.CanvasTexture(kv);
+  tex.colorSpace=THREE.SRGBColorSpace;
+  var mat=new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false});
+  var sp=new THREE.Sprite(mat);
+  sp.scale.set(ukuran||1,ukuran||1,1);
+  sp.renderOrder=10;
+  return sp;
+}
+var gelembungOwl=spriteEmoji("❓",0.9);
+gelembungOwl.position.set(0.9,2.7,-2);
+gelembungOwl.visible=false;
+scene.add(gelembungOwl);
+
+/* ===================== pemain ===================== */
+var matAnak=bahan(0x23508f);
+var matAnakKulit=bahan(0xffd9b3);
+function buatPemain(){
+  var g=new THREE.Group();
+  var badan=new THREE.Mesh(GEO.silinder,matAnak); badan.scale.set(0.34,0.5,0.34); badan.position.y=0.62;
+  g.add(badan);
+  var kepala=new THREE.Mesh(GEO.bola,matAnakKulit); kepala.scale.set(0.32,0.32,0.32); kepala.position.y=1.12;
+  g.add(kepala);
+  var topi=new THREE.Mesh(GEO.kerucut,bahan(0xff9d9d)); topi.scale.set(0.34,0.28,0.34); topi.position.y=1.36;
+  g.add(topi);
+  [[-0.16,0],[0.16,0]].forEach(function(p){
+    var kaki=new THREE.Mesh(GEO.silinder,bahan(0x1a3a6b)); kaki.scale.set(0.1,0.34,0.1); kaki.position.set(p[0],0.17,0);
+    g.add(kaki);
+  });
+  g.traverse(function(o){ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
+  return g;
+}
+var pemain=buatPemain();
+pemain.position.set(0,0,8);
+scene.add(pemain);
+var arahPemain=0; // 0 = menghadap -z (arah Profesor Hu-Hu di awal)
+var jalanFase=0;
+
+/* ===================== wortel & pengalih ===================== */
+var matWortelBadan=bahan(0xff8a3d);
+var matWortelDaun=bahan(0x2E7D46);
+function buatWortel(){
+  var g=new THREE.Group();
+  var badan=new THREE.Mesh(GEO.kerucut,matWortelBadan);
+  badan.scale.set(0.22,0.55,0.22); badan.position.y=0.28; badan.rotation.x=Math.PI;
+  g.add(badan);
+  for(var i=0;i<3;i++){
+    var daun=new THREE.Mesh(GEO.kerucut,matWortelDaun);
+    daun.scale.set(0.06,0.32,0.06);
+    daun.position.set((i-1)*0.09,0.62,0);
+    daun.rotation.z=(i-1)*0.35;
+    g.add(daun);
+  }
+  g.traverse(function(o){ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
+  return g;
+}
+var matBatu=bahan(0x9aa5ad,{roughness:1});
+var matJamurBatang=bahan(0xFFF6E4);
+var matJamurTopi=bahan(0xE4572E);
+function buatPengalih(){
+  var g=new THREE.Group();
+  if(R()>0.5){
+    var batu=new THREE.Mesh(GEO.bola,matBatu);
+    batu.scale.set(0.32+R()*0.15,0.24+R()*0.1,0.3+R()*0.15);
+    batu.position.y=0.14;
+    g.add(batu);
+  }else{
+    var batang=new THREE.Mesh(GEO.silinder,matJamurBatang);
+    batang.scale.set(0.09,0.26,0.09); batang.position.y=0.13;
+    g.add(batang);
+    var topi=new THREE.Mesh(GEO.bola,matJamurTopi);
+    topi.scale.set(0.26,0.16,0.26); topi.position.y=0.28;
+    g.add(topi);
+  }
+  g.traverse(function(o){ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
+  return g;
+}
+
+var objekGrup=new THREE.Group(); scene.add(objekGrup);
+var wortelDiDunia=[]; // {mesh,fase}
+var pengalihDiDunia=[];
+
+function titikAcakDiArea(hindari,min){
+  for(var t=0;t<40;t++){
+    var sudut=R()*Math.PI*2, jarak=3+R()*(BATAS-4);
+    var x=Math.cos(sudut)*jarak, z=Math.sin(sudut)*jarak;
+    if(jauhDariTitik(x,z,hindari,min)) return [x,z];
+  }
+  return [ (R()-0.5)*BATAS, (R()-0.5)*BATAS ];
+}
+
+function bersihkanObjek(){
+  wortelDiDunia.forEach(function(o){ objekGrup.remove(o.mesh); });
+  pengalihDiDunia.forEach(function(o){ objekGrup.remove(o.mesh); });
+  wortelDiDunia=[]; pengalihDiDunia=[];
+}
+
+function sebarRonde(target){
+  bersihkanObjek();
+  var hindari=[[pemain.position.x,pemain.position.z],[0,-2]];
+  for(var i=0;i<target;i++){
+    var t=titikAcakDiArea(hindari,3.2);
+    hindari.push(t);
+    var m=buatWortel();
+    m.position.set(t[0],0,t[1]);
+    objekGrup.add(m);
+    wortelDiDunia.push({mesh:m,fase:R()*10});
+  }
+  var jmlPengalih=2+Math.floor(R()*2);
+  for(var i=0;i<jmlPengalih;i++){
+    var t=titikAcakDiArea(hindari,3.2);
+    hindari.push(t);
+    var m=buatPengalih();
+    m.position.set(t[0],0,t[1]);
+    objekGrup.add(m);
+    pengalihDiDunia.push({mesh:m});
+  }
+}
+
+/* ===================== suara ===================== */
+var ac=null, bisu=false;
+try{ bisu=localStorage.getItem("mathland_bisu")==="1"; }catch(e){}
+function siapkanSuara(){ try{ if(!ac){ var AC=window.AudioContext||window.webkitAudioContext; if(AC) ac=new AC(); } if(ac&&ac.state==="suspended") ac.resume(); }catch(e){} }
+function nada(f,mulai,lama,vol,tipe){
+  if(bisu||!ac) return;
+  var t0=ac.currentTime+mulai;
+  var osc=ac.createOscillator(), g=ac.createGain();
+  osc.type=tipe||"sine"; osc.frequency.setValueAtTime(f,t0);
+  g.gain.setValueAtTime(0,t0);
+  g.gain.linearRampToValueAtTime(vol,t0+0.02);
+  g.gain.exponentialRampToValueAtTime(0.001,t0+lama);
+  osc.connect(g); g.connect(ac.destination);
+  osc.start(t0); osc.stop(t0+lama+0.02);
+}
+function bunyiAmbil(){ nada(660,0,0.1,0.13,"triangle"); nada(880,0.05,0.12,0.1,"triangle"); }
+function bunyiSalah(){ nada(300,0,0.14,0.09,"sine"); nada(230,0.08,0.16,0.08,"sine"); }
+function bunyiKurang(){ nada(392,0,0.16,0.1); nada(330,0.1,0.18,0.09); }
+function bunyiBenar(){ [523,659,784,1046].forEach(function(f,i){ nada(f,i*0.09,0.3,0.14,"triangle"); }); }
+
+var suaraId="id-ID", suaraUcap=null;
+function siapkanSuaraUcap(){
+  if(!window.speechSynthesis) return;
+  var vv=speechSynthesis.getVoices();
+  suaraUcap=vv.find(function(v){ return v.lang===suaraId; })||vv.find(function(v){ return v.lang&&v.lang.indexOf("id")===0; })||null;
+}
+if(window.speechSynthesis){
+  siapkanSuaraUcap();
+  speechSynthesis.onvoiceschanged=siapkanSuaraUcap;
+}
+function ucap(teks){
+  if(bisu||!window.speechSynthesis) return;
+  try{
+    speechSynthesis.cancel();
+    var u=new SpeechSynthesisUtterance(teks);
+    u.lang=suaraId; if(suaraUcap) u.voice=suaraUcap;
+    u.rate=0.95; u.pitch=1.15;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+document.getElementById("suara").onclick=function(){
+  bisu=!bisu;
+  try{ localStorage.setItem("mathland_bisu",bisu?"1":"0"); }catch(e){}
+  this.textContent=bisu?"🔇":"🔊";
+  if(bisu&&window.speechSynthesis) speechSynthesis.cancel();
+};
+document.getElementById("suara").textContent=bisu?"🔇":"🔊";
+
+/* ===================== HUD & state ronde ===================== */
+var elTarget=document.getElementById("jmlTarget");
+var elTitik=document.getElementById("titikTarget");
+var elBintang=document.getElementById("jmlBintang");
+var elKeranjang=document.getElementById("keranjang");
+var elKartu=document.getElementById("kartu");
+var elKTeks=document.getElementById("kTeks");
+var elKEmoji=document.getElementById("kEmoji");
+var elToast=document.getElementById("toast");
+var elTombolKasih=document.getElementById("tombolKasih");
+
+var bintang=0, target=0, keranjang=0, ronde=0;
+var toastT=null;
+function toast(teks,lama){
+  elToast.textContent=teks;
+  elToast.classList.add("tampil");
+  clearTimeout(toastT);
+  toastT=setTimeout(function(){ elToast.classList.remove("tampil"); },lama||1800);
+}
+var kartuT=null;
+function kartu(emoji,teks,lama){
+  elKEmoji.textContent=emoji; elKTeks.textContent=teks;
+  elKartu.classList.add("tampil");
+  clearTimeout(kartuT);
+  kartuT=setTimeout(function(){ elKartu.classList.remove("tampil"); },lama||2600);
+}
+
+function perbaruiKeranjang(){
+  elKeranjang.innerHTML="";
+  for(var i=0;i<keranjang;i++){
+    var s=document.createElement("div");
+    s.className="kslot"; s.textContent="🥕";
+    elKeranjang.appendChild(s);
+  }
+}
+function perbaruiTitikTarget(){
+  elTitik.innerHTML="";
+  for(var i=0;i<target;i++){
+    var s=document.createElement("span");
+    if(i<keranjang) s.className="isi";
+    elTitik.appendChild(s);
+  }
+}
+
+function mulaiRonde(){
+  ronde++;
+  target=1+Math.floor(R()*5); // 1..5, level 1: berhitung dasar
+  keranjang=0;
+  elTarget.textContent=target;
+  perbaruiKeranjang(); perbaruiTitikTarget();
+  sebarRonde(target);
+  kartu("🦉","Kumpulkan "+target+" wortel ya!",3200);
+  ucap("Ayo kumpulkan "+ANGKA_KATA[target]+" wortel!");
+}
+
+function ambilWortel(idx){
+  var o=wortelDiDunia[idx];
+  objekGrup.remove(o.mesh);
+  wortelDiDunia.splice(idx,1);
+  keranjang++;
+  bunyiAmbil();
+  perbaruiKeranjang(); perbaruiTitikTarget();
+  ucap(ANGKA_KATA[keranjang]||String(keranjang));
+}
+function sentuhPengalih(idx){
+  var o=pengalihDiDunia[idx];
+  // dorong sedikit menjauh & beri isyarat, tidak hilang
+  var dx=o.mesh.position.x-pemain.position.x, dz=o.mesh.position.z-pemain.position.z;
+  var jr=Math.max(0.001,Math.hypot(dx,dz));
+  o.mesh.position.x+=dx/jr*0.6; o.mesh.position.z+=dz/jr*0.6;
+  bunyiSalah();
+  toast("Itu bukan wortel 😄",1200);
+}
+
+function kasihKeOwl(){
+  if(keranjang===0){ toast("Kumpulkan wortel dulu ya!"); return; }
+  if(keranjang<target){
+    var kurang=target-keranjang;
+    bunyiKurang();
+    kartu("🦉","Aku butuh "+target+" wortel, kamu baru bawa "+keranjang+". Cari "+kurang+" lagi ya!",3200);
+    ucap("Aku butuh "+ANGKA_KATA[target]+" wortel. Ayo cari "+ANGKA_KATA[kurang]+" lagi!");
+    return;
+  }
+  // tepat (tidak bisa lebih karena wortel di dunia = target)
+  bintang++;
+  elBintang.textContent=bintang;
+  bunyiBenar();
+  kartu("🦉","Horee! Tepat "+target+" wortel! Terima kasih! 🎉",2600);
+  ucap("Horee! Tepat "+ANGKA_KATA[target]+" wortel!");
+  confetti();
+  setTimeout(mulaiRonde,2200);
+}
+elTombolKasih.onclick=function(){ siapkanSuara(); kasihKeOwl(); };
+
+/* confetti sederhana (DOM) */
+function confetti(){
+  var emo=["🎉","⭐","🥕","🍃"];
+  for(var i=0;i<16;i++){
+    (function(){
+      var el=document.createElement("div");
+      el.textContent=emo[Math.floor(Math.random()*emo.length)];
+      el.style.cssText="position:absolute;top:-24px;left:"+(Math.random()*100)+"%;font-size:20px;pointer-events:none;z-index:8;transition:transform 1.1s linear,opacity 1.1s linear;";
+      document.getElementById("app").appendChild(el);
+      requestAnimationFrame(function(){
+        el.style.transform="translateY("+(window.innerHeight+40)+"px) rotate("+(Math.random()*400-200)+"deg)";
+        el.style.opacity="0.15";
+      });
+      setTimeout(function(){ el.remove(); },1200);
+    })();
+  }
+}
+
+/* ===================== kontrol ===================== */
+var gerak={depan:false,belakang:false,kiri:false,kanan:false};
+function pasangArah(id,kunci){
+  var el=document.getElementById(id);
+  function on(e){ e.preventDefault(); gerak[kunci]=true; el.classList.add("tekan"); siapkanSuara(); }
+  function off(e){ if(e)e.preventDefault(); gerak[kunci]=false; el.classList.remove("tekan"); }
+  el.addEventListener("pointerdown",on);
+  el.addEventListener("pointerup",off);
+  el.addEventListener("pointerleave",off);
+  el.addEventListener("pointercancel",off);
+}
+pasangArah("arah-atas","depan");
+pasangArah("arah-bawah","belakang");
+pasangArah("arah-kiri","kiri");
+pasangArah("arah-kanan","kanan");
+window.addEventListener("keydown",function(e){
+  siapkanSuara();
+  if(e.key==="ArrowUp"||e.key==="w"||e.key==="W") gerak.depan=true;
+  if(e.key==="ArrowDown"||e.key==="s"||e.key==="S") gerak.belakang=true;
+  if(e.key==="ArrowLeft"||e.key==="a"||e.key==="A") gerak.kiri=true;
+  if(e.key==="ArrowRight"||e.key==="d"||e.key==="D") gerak.kanan=true;
+  if(e.key===" ") kasihKeOwl();
+});
+window.addEventListener("keyup",function(e){
+  if(e.key==="ArrowUp"||e.key==="w"||e.key==="W") gerak.depan=false;
+  if(e.key==="ArrowDown"||e.key==="s"||e.key==="S") gerak.belakang=false;
+  if(e.key==="ArrowLeft"||e.key==="a"||e.key==="A") gerak.kiri=false;
+  if(e.key==="ArrowRight"||e.key==="d"||e.key==="D") gerak.kanan=false;
+});
+
+/* ===================== kamera ===================== */
+var kameraPosHalus=new THREE.Vector3(0,9,16);
+var kameraTargetHalus=new THREE.Vector3();
+
+/* ===================== loop utama ===================== */
+var berjalan=false, waktu=0, prevT=performance.now();
+var KECEPATAN=6.2;
+
+// tombol arah = arah DUNIA yang tetap (bukan relatif arah hadap pemain) —
+// sederhana & stabil untuk anak-anak, kamera juga tidak ikut berputar (lihat perbaruiKamera).
+// atas=-z, bawah=+z, kiri=-x, kanan=+x. Model pemain cuma berputar mengikuti arah geraknya.
+function perbaruiPemain(dt){
+  var gx=(gerak.kanan?1:0)-(gerak.kiri?1:0);
+  var gz=(gerak.belakang?1:0)-(gerak.depan?1:0);
+  berjalan=(gx!==0||gz!==0);
+  if(berjalan){
+    var len=Math.hypot(gx,gz);
+    gx/=len; gz/=len;
+    var nx=pemain.position.x+gx*KECEPATAN*dt, nz=pemain.position.z+gz*KECEPATAN*dt;
+    var jr=Math.hypot(nx,nz);
+    if(jr>BATAS){ var k=BATAS/jr; nx*=k; nz*=k; }
+    var jariPemain=0.35;
+    for(var pi=0;pi<pohonTabrakan.length;pi++){
+      var po=pohonTabrakan[pi];
+      var dx=nx-po.x, dz=nz-po.z, minJr=po.r+jariPemain;
+      var jrPohon=Math.hypot(dx,dz);
+      if(jrPohon<minJr&&jrPohon>0.0001){ var kp=minJr/jrPohon; nx=po.x+dx*kp; nz=po.z+dz*kp; }
+    }
+    pemain.position.x=nx; pemain.position.z=nz;
+    var arahTarget=Math.atan2(gx,gz);
+    var beda=((arahTarget-arahPemain+Math.PI*3)%(Math.PI*2))-Math.PI;
+    arahPemain+=beda*Math.min(1,dt*14);
+    jalanFase+=dt*9;
+  }
+  pemain.rotation.y=arahPemain;
+  pemain.position.y=berjalan?Math.abs(Math.sin(jalanFase))*0.06:0;
+}
+
+function periksaObjek(){
+  for(var i=wortelDiDunia.length-1;i>=0;i--){
+    var o=wortelDiDunia[i];
+    var d=pemain.position.distanceTo(o.mesh.position);
+    if(d<0.85) ambilWortel(i);
+  }
+  for(var i=pengalihDiDunia.length-1;i>=0;i--){
+    var o=pengalihDiDunia[i];
+    var d=pemain.position.distanceTo(o.mesh.position);
+    if(d<0.75) sentuhPengalih(i);
+  }
+  var dOwl=pemain.position.distanceTo(owl.position);
+  var dekat=dOwl<3.2;
+  elTombolKasih.classList.toggle("tampil",dekat);
+  elTombolKasih.classList.toggle("siap",dekat&&keranjang>0);
+  gelembungOwl.visible=dekat&&keranjang>0&&keranjang<target;
+}
+
+function animasiIdle(dt){
+  owlFase+=dt;
+  owl.position.y=Math.sin(owlFase*1.6)*0.05;
+  owl.rotation.y=Math.sin(owlFase*0.5)*0.15;
+  gelembungOwl.position.set(owl.position.x+0.9,2.7+Math.sin(owlFase*1.6)*0.05,owl.position.z);
+  wortelDiDunia.forEach(function(o){
+    o.fase+=dt;
+    o.mesh.position.y=0.05+Math.abs(Math.sin(o.fase*2))*0.06;
+    o.mesh.rotation.y+=dt*0.6;
+  });
+}
+
+var rayKamera=new THREE.Raycaster();
+var titikMataPemain=new THREE.Vector3();
+// kamera pakai offset dunia TETAP (tidak ikut berputar mengikuti arah hadap pemain) —
+// gaya forest-feast: selalu di +z & agak tinggi dari pemain, stabil & mudah diprediksi anak-anak.
+function perbaruiKamera(dt){
+  var jarakBelakang=9.5, tinggiKam=7.5;
+  var targetPos=new THREE.Vector3(
+    pemain.position.x,
+    tinggiKam,
+    pemain.position.z+jarakBelakang
+  );
+  kameraPosHalus.lerp(targetPos,Math.min(1,dt*3.2));
+
+  // jangan biarkan kamera menembus pohon: raycast dari mata pemain ke posisi kamera yang diinginkan
+  titikMataPemain.set(pemain.position.x,1.1,pemain.position.z);
+  var arahKeKamera=new THREE.Vector3().subVectors(kameraPosHalus,titikMataPemain);
+  var jarakIdeal=arahKeKamera.length();
+  arahKeKamera.normalize();
+  rayKamera.set(titikMataPemain,arahKeKamera);
+  rayKamera.far=jarakIdeal;
+  var kena=rayKamera.intersectObjects(pohonGrup.children,true);
+  var posKameraAkhir=kameraPosHalus;
+  if(kena.length){
+    var jarakAman=Math.max(1.5,kena[0].distance-0.6);
+    posKameraAkhir=titikMataPemain.clone().addScaledVector(arahKeKamera,jarakAman);
+  }
+
+  kameraTargetHalus.lerp(titikMataPemain,Math.min(1,dt*4));
+  camera.position.copy(posKameraAkhir);
+  camera.lookAt(kameraTargetHalus);
+}
+
+function gelung(){
+  requestAnimationFrame(gelung);
+  var now=performance.now();
+  var dt=Math.min(0.05,(now-prevT)/1000);
+  prevT=now; waktu+=dt;
+  if(!mainAktif) return;
+  perbaruiPemain(dt);
+  animasiIdle(dt);
+  periksaObjek();
+  perbaruiKamera(dt);
+  renderer.render(scene,camera);
+}
+
+/* ===================== mulai ===================== */
+var mainAktif=false;
+ukur();
+document.getElementById("memuat").classList.add("sembunyi");
+document.getElementById("tombolMulai").onclick=function(){
+  siapkanSuara();
+  document.getElementById("mulai").classList.add("sembunyi");
+  mainAktif=true;
+  mulaiRonde();
+};
+gelung();
+
+})();
+</script>
+</body>
+</html>
